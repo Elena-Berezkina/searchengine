@@ -1,64 +1,78 @@
 package searchengine.services;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Service;
-import searchengine.config.Site;
 import searchengine.config.SitesList;
 import searchengine.dto.statistics.DetailedStatisticsItem;
 import searchengine.dto.statistics.StatisticsData;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.dto.statistics.TotalStatistics;
+import searchengine.model.SiteEntity;
+import searchengine.repository.LemmaRepository;
+import searchengine.repository.PageRepository;
+import searchengine.repository.SiteRepository;
 
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
+
 
 @Service
-@RequiredArgsConstructor
+
+@EnableConfigurationProperties(value = SitesList.class)
 public class StatisticsServiceImpl implements StatisticsService {
 
-    private final Random random = new Random();
-    private final SitesList sites;
+    private final SiteRepository siteRepository;
+    private final PageRepository pageRepository;
+    private final LemmaRepository lemmaRepository;
+
+    public StatisticsServiceImpl(SiteRepository siteRepository, PageRepository pageRepository, LemmaRepository lemmaRepository) {
+        this.siteRepository = siteRepository;
+        this.pageRepository = pageRepository;
+        this.lemmaRepository = lemmaRepository;
+    }
+
+    public DetailedStatisticsItem getDetailedStatData(SiteEntity site) {
+        DetailedStatisticsItem detStatData = new DetailedStatisticsItem();
+        detStatData.setUrl(site.getUrl());
+        detStatData.setName(site.getName());
+        detStatData.setStatus(site.getStatus().toString());
+        detStatData.setStatusTime(site.getStatusTime().atZone(ZoneId.of("Europe/Moscow")).toEpochSecond());
+        detStatData.setError(site.getLastError());
+        detStatData.setPages(pageRepository.findAllBySiteId(site).size());
+        detStatData.setLemmas(lemmaRepository.findAllBySiteId(site).size());
+        return detStatData;
+    }
+
+    public List<DetailedStatisticsItem> getDetailedStatList() {
+        List<DetailedStatisticsItem> list = new ArrayList<>();
+        for (SiteEntity s : siteRepository.findAll()) {
+            list.add(getDetailedStatData(s));
+        }
+        return list;
+    }
+
+    public TotalStatistics getTotalStatData() {
+        TotalStatistics statData = new TotalStatistics();
+        statData.setSites(siteRepository.findAll().size());
+        statData.setPages(pageRepository.findAll().size());
+        statData.setLemmas(lemmaRepository.findAll().size());
+        statData.setIndexing(true);
+        return statData;
+    }
 
     @Override
     public StatisticsResponse getStatistics() {
-        String[] statuses = { "INDEXED", "FAILED", "INDEXING" };
-        String[] errors = {
-                "Ошибка индексации: главная страница сайта не доступна",
-                "Ошибка индексации: сайт не доступен",
-                ""
-        };
-
-        TotalStatistics total = new TotalStatistics();
-        total.setSites(sites.getSites().size());
-        total.setIndexing(true);
-
-        List<DetailedStatisticsItem> detailed = new ArrayList<>();
-        List<Site> sitesList = sites.getSites();
-        for(int i = 0; i < sitesList.size(); i++) {
-            Site site = sitesList.get(i);
-            DetailedStatisticsItem item = new DetailedStatisticsItem();
-            item.setName(site.getName());
-            item.setUrl(site.getUrl());
-            int pages = random.nextInt(1_000);
-            int lemmas = pages * random.nextInt(1_000);
-            item.setPages(pages);
-            item.setLemmas(lemmas);
-            item.setStatus(statuses[i % 3]);
-            item.setError(errors[i % 3]);
-            item.setStatusTime(System.currentTimeMillis() -
-                    (random.nextInt(10_000)));
-            total.setPages(total.getPages() + pages);
-            total.setLemmas(total.getLemmas() + lemmas);
-            detailed.add(item);
-        }
-
-        StatisticsResponse response = new StatisticsResponse();
-        StatisticsData data = new StatisticsData();
-        data.setTotal(total);
-        data.setDetailed(detailed);
-        response.setStatistics(data);
-        response.setResult(true);
-        return response;
+        StatisticsData data = new StatisticsData(getTotalStatData(), getDetailedStatList());
+        return new StatisticsResponse(true, data);
     }
 }
+
+
+
+
+
+
+
+
