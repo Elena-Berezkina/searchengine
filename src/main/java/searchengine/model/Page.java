@@ -8,6 +8,8 @@ import org.hibernate.annotations.OnDeleteAction;
 
 import javax.persistence.*;
 import javax.persistence.Index;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 @Getter
@@ -33,6 +35,10 @@ public class Page {
     @NotNull
     @Column(columnDefinition = "MEDIUMTEXT")
     private String content;
+    @OneToMany(cascade = CascadeType.REMOVE)
+    @JoinColumn(name = "page_id")
+    private List<searchengine.model.Index> indexes = new ArrayList<>();
+
 
 
     @Override

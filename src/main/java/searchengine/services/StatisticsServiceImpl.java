@@ -1,6 +1,4 @@
 package searchengine.services;
-
-import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Service;
 import searchengine.config.SitesList;
@@ -12,7 +10,6 @@ import searchengine.model.SiteEntity;
 import searchengine.repository.LemmaRepository;
 import searchengine.repository.PageRepository;
 import searchengine.repository.SiteRepository;
-
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,7 +38,9 @@ public class StatisticsServiceImpl implements StatisticsService {
         detStatData.setStatusTime(site.getStatusTime().atZone(ZoneId.of("Europe/Moscow")).toEpochSecond());
         detStatData.setError(site.getLastError());
         detStatData.setPages(pageRepository.findAllBySiteId(site).size());
-        detStatData.setLemmas(lemmaRepository.findAllBySiteId(site).size());
+        if(lemmaRepository.findAllBySiteId(site).isPresent()) {
+            detStatData.setLemmas(lemmaRepository.findAllBySiteId(site).get().size());
+        }
         return detStatData;
     }
 

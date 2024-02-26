@@ -1,16 +1,12 @@
 package searchengine.controllers;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import searchengine.dto.indexing.IndexingResponse;
 import searchengine.dto.statistics.StatisticsResponse;
-import searchengine.exceptions.EmptyQueryException;
-import searchengine.repository.PageRepository;
-import searchengine.repository.SiteRepository;
 import searchengine.services.*;
-
 import java.io.IOException;
+
 
 
 @RestController
@@ -22,7 +18,8 @@ public class ApiController {
     private final SearchService searchService;
 
 
-    public ApiController(StatisticsService statisticsService, IndexingServiceImpl indexingService, SearchService searchService, PageRepository pageRepository, SiteRepository siteRepository) {
+    public ApiController(StatisticsService statisticsService, IndexingServiceImpl indexingService,
+                         SearchService searchService) {
         this.statisticsService = statisticsService;
         this.indexingService = indexingService;
         this.searchService = searchService;
@@ -53,15 +50,13 @@ public class ApiController {
     }
 
     @GetMapping("/search")
-    public IndexingResponse startFullSearch(@RequestParam(name = "query") String query) throws IOException {
-        if(query.isEmpty()) { throw new EmptyQueryException(); }
-        return new IndexingResponse(true, searchService.startAllSitesSearch(query).size(), searchService.startAllSitesSearch(query), HttpStatus.OK);
+    public IndexingResponse search(@RequestParam(name = "query") String query,
+                                            @RequestParam(name = "site", required = false) String site) throws IOException {
+
+        return new IndexingResponse(true, searchService.startSearch(query, site).size(),
+                searchService.startSearch(query, site), HttpStatus.OK);
     }
-    @GetMapping("/siteSearch")
-    public IndexingResponse startOneSiteSearch(@RequestParam(name = "query") String query, @RequestParam(name = "path") String path) throws IOException {
-        if(query.isEmpty() || path.isEmpty()) { throw new EmptyQueryException(); }
-        return new IndexingResponse(true, searchService.startOneSiteSearch(query, path).size(), searchService.startOneSiteSearch(query, path), HttpStatus.OK);
-    }
+
 
 
 

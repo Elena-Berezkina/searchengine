@@ -17,8 +17,8 @@ public class Index {
     @GeneratedValue(strategy = GenerationType.AUTO)
     @NotNull
     int id;
+    @ManyToOne(cascade = CascadeType.MERGE)
     @JoinColumn(name = "page_id")
-    @OneToOne(fetch = FetchType.LAZY)
     Page pageId;
     @JoinColumn(name = "lemma_id")
     @OneToOne(fetch = FetchType.LAZY)

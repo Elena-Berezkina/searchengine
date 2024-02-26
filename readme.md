@@ -17,4 +17,4 @@
 - поиск по несуществующему сайту(страница не существует либо путь введен с ошибкой);
 - пустой запрос или пустой адрес, если данные параметры предполагаются командой.
 
-Использованные maven зависимости: org.springframework.boot, org.projectlombok, mysql, org.apache.lucene, org.apache.lucene.morphology, org.jsoup.
+Использованные maven зависимости: org.springframework.boot, org.projectlombok, mysql, org.apache.lucene, org.apache.lucene.morphology, org.jsoup.# search-engine-repository

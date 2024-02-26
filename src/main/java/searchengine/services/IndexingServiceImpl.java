@@ -1,47 +1,50 @@
 package searchengine.services;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Service;
 import searchengine.config.Site;
 import searchengine.config.SitesList;
-import searchengine.dto.indexing.IndexingData;
-import searchengine.dto.indexing.IndexingResponse;
-import searchengine.dto.indexing.PageDto;
-import searchengine.dto.statistics.DetailedStatisticsItem;
 import searchengine.exceptions.*;
 import searchengine.model.*;
 import searchengine.repository.*;
-
+import searchengine.utils.*;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.*;
 import java.net.URL;
 
-import static java.lang.Thread.sleep;
 
 @Service
 @EnableConfigurationProperties(value = SitesList.class)
 public class IndexingServiceImpl implements IndexingService{
-    CopyOnWriteArraySet<String> urlSet = new CopyOnWriteArraySet<>();
-    CopyOnWriteArrayList<SiteEntity> sites = new CopyOnWriteArrayList<>();
+    private CopyOnWriteArraySet<String> urlSet;
+    private CopyOnWriteArrayList<SiteEntity> sites;
     private final SiteRepository siteRepository;
     private final PageRepository pageRepository;
     private final LemmaRepository lemmaRepository;
     private final IndexRepository indexRepository;
+    private final LemmaIndexing lemmaIndexing;
+    private final ModelObjectBuilder objectBuilder;
 
     @Autowired
-    SitesList sitesList;
+    public SitesList sitesList;
 
-    public IndexingServiceImpl(SiteRepository siteRepository, PageRepository pageRepository, LemmaRepository lemmaRepository, IndexRepository indexRepository) {
+    public IndexingServiceImpl(SiteRepository siteRepository, PageRepository pageRepository,
+                               LemmaRepository lemmaRepository, IndexRepository indexRepository) {
         this.siteRepository = siteRepository;
         this.pageRepository = pageRepository;
         this.lemmaRepository = lemmaRepository;
         this.indexRepository = indexRepository;
+        urlSet = new CopyOnWriteArraySet<>();
+        sites = new CopyOnWriteArrayList<>();
+        lemmaIndexing = new LemmaIndexing();
+        objectBuilder = new ModelObjectBuilder();                                                                        //заполнение всех model объектов вынесено в отдельный класс, чтобы не было повторения и чтобы код не выглядел чересчур громоздко
+
+
     }
 
     public void toDelete(String path) {
@@ -50,65 +53,64 @@ public class IndexingServiceImpl implements IndexingService{
                 throw new StartIndexingException();
             }
             List<Page> pagesToDelete = pageRepository.findAllBySiteId(siteRepository.findSiteByPath(path));
-            List<Lemma> lemmasToDelete = lemmaRepository.findAllBySiteId(siteRepository.findSiteByPath(path));
-            List<Index> indexesToDelete = new ArrayList<>();
-            for (Lemma l : lemmasToDelete) {
-                if (indexRepository.findByLemmaId(l) != null) {
-                    indexesToDelete.add(indexRepository.findByLemmaId(l));
-                }
-                if (!indexesToDelete.isEmpty()) {
-                    indexRepository.deleteAll(indexesToDelete);
-                }
-                if (!lemmasToDelete.isEmpty() && indexesToDelete.isEmpty()) {
-                    lemmaRepository.deleteAll(lemmasToDelete);
-                }
-                if(!pagesToDelete.isEmpty() && lemmasToDelete.isEmpty()) {
-                    pageRepository.deleteAll(pagesToDelete);
-                }
-                siteRepository.delete(siteRepository.findSiteByPath(path));
+            deleteLemmasAndIndexes(siteRepository.findSiteByPath(path));
+            pageRepository.deleteAll(pagesToDelete);
+            siteRepository.delete(siteRepository.findSiteByPath(path));
             }
         }
-    }
+
 
    public void toDeletePageData(String path) {
    if(pageRepository.findPageByPath(path) != null) {
        Page pageToDelete = pageRepository.findPageByPath(path);
        SiteEntity s = pageToDelete.getSiteId();
-       List<Lemma> lemmasToDelete = lemmaRepository.findAllBySiteId(s);
+       deleteLemmasAndIndexes(s);
+       pageRepository.delete(pageToDelete);
+        }
+   }
+
+   public void deleteLemmasAndIndexes(SiteEntity site) {
+       List<Lemma> lemmasToDelete = new ArrayList<>();
        List<Index> indexesToDelete = new ArrayList<>();
-       for (Lemma l : lemmasToDelete) {
-           Index i = indexRepository.findByLemmaId(l);
-           indexesToDelete.add(i);
+       if (lemmaRepository.findAllBySiteId(site).isPresent()) {
+           lemmasToDelete = lemmaRepository.findAllBySiteId(site).get();
+           for (Lemma lemma : lemmasToDelete) {
+               if (indexRepository.findByLemmaId(lemma).isPresent()) {
+                   indexesToDelete.add(indexRepository.findByLemmaId(lemma).get());
+               }
+           }
        }
-       if (!indexesToDelete.isEmpty()) {
+       if(!indexesToDelete.isEmpty()) {
            indexRepository.deleteAll(indexesToDelete);
        }
-       if (!lemmasToDelete.isEmpty()) {
+       if (!lemmasToDelete.isEmpty() && indexesToDelete.isEmpty()) {
            lemmaRepository.deleteAll(lemmasToDelete);
        }
-       pageRepository.delete(pageToDelete);
    }
 
-   }
-
-    public void generalParser() throws IOException {
-        for (Site s : sitesList.getSites()) {
-                toDelete(s.getUrl());
-                Parser site = new Parser(s.getUrl());
-                FutureTask<SiteEntity> task = new FutureTask<>(site);
+    public void generalParser() {
+        for (Site site : sitesList.getSites()) {
+                toDelete(site.getUrl());
+                Parser siteToParse = new Parser(site.getUrl());                                                                    //создается объект класса Parser, который имплементирует Callable
+                FutureTask<SiteEntity> task = new FutureTask<>(siteToParse);
                 Thread thread = new Thread(task);
                 thread.start();
-                SiteEntity newSite = site.call();
-                siteRepository.saveAndFlush(newSite);
-                urlSet.add(s.getUrl());
-                new ForkJoinPool().invoke(new Crawler(new Node(s.getUrl()), s.getUrl(), newSite, pageRepository, lemmaRepository, indexRepository));
+            SiteEntity newSite = null;
+            try {
+                newSite = siteToParse.call();                                                                                   //каждый сайт создается в новом потоке
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            siteRepository.saveAndFlush(newSite);
+                urlSet.add(site.getUrl());
+                new ForkJoinPool().invoke(new Crawler(new Node(site.getUrl()), newSite, pageRepository,                     //при обходе страниц при переходе по каждой новой ссылке создается новый поток
+                        lemmaRepository, indexRepository));
                 newSite.setStatus(Status.INDEXED);
                 siteRepository.saveAndFlush(newSite);
                 sites.add(newSite);
             }
 
         }
-
 
     public void stopIndexing() {
         List<Status> statusList = new ArrayList<>();
@@ -119,100 +121,72 @@ public class IndexingServiceImpl implements IndexingService{
         if(!statusList.contains(Status.INDEXING)) {
             throw new StopIndexingException();
         } else {
-            for (SiteEntity site : siteRepository.findAll()) {
-                if (site.getStatus().equals(Status.INDEXING)) {
-                    Thread.currentThread().interrupt();
-                    site.setStatus(Status.FAILED);
-                    site.setLastError("Индексация остановлена пользователем");
-                    siteRepository.save(site);
-                }
-            }
+            siteRepository.findAllByStatus(Status.INDEXING)
+                    .forEach(site -> objectBuilder.setStopIndexingSiteInfo(site, siteRepository));
         }
     }
 
     public List<String> pathList() {
         List<String> pathList = new ArrayList<>();
-        for (Site site : sitesList.getSites()) {
-            pathList.add(site.getUrl());
-        }
+        sitesList.getSites().forEach(site -> pathList.add(site.getUrl()));
         return pathList;
     }
 
     public boolean isOffTheSiteList(String path) {
-        int i = 0;
+        int isOffTheListIndex = 0;
         for (String url : pathList()) {
             if (path.contains(url)) {
-                i++;
+                isOffTheListIndex++;
             }
         }
-        return i <= 0;
+        return isOffTheListIndex <= 0;
     }
 
 
-    public void indexOnePage(String path) throws IOException {
+    public void indexOnePage(String path) {
         if(!isValid(path)) { throw new WrongPathException(); }
         if(!isFound(path)) { throw new PageNotFoundException(); }
         if(isOffTheSiteList(path)) { throw new OffTheListException(); }
             toDeletePageData(path);
-            LemmaIndexing lemmaIndexing = new LemmaIndexing();
             Page page = new Page();
-            page.setPath(path);
-            page.setContent(lemmaIndexing.getHtmlText(path));
+        try {
+            objectBuilder.setPageInfo(page, path, 200, lemmaIndexing.getHtmlText(path));
             setSiteIdForThisPage(path, page);
             pageRepository.saveAndFlush(page);
             HashMap<String, Integer> lemmaMap = lemmaIndexing.getLemmas(lemmaIndexing.getHtmlText(path));
-            for (Map.Entry<String, Integer> entry : lemmaMap.entrySet()) {
-                Lemma lemma = new Lemma();
-                Index index = new Index();
-                lemma.setLemma(entry.getKey());
-                setFrequency(lemma, entry.getKey());
-                lemma.setSiteId(page.getSiteId());
-                lemmaRepository.saveAndFlush(lemma);
-                index.setPageId(page);
-                index.setLemmaId(lemma);
-                index.setLemmaRank(entry.getValue());
-                indexRepository.saveAndFlush(index);
-            }
+            lemmaMap.entrySet()                                                                                          //заполняются таблицы лемм и индексов
+                    .forEach(entry -> objectBuilder.createLemmaAndIndex(page.getSiteId(), page, entry.getKey(),
+                            entry.getValue(), lemmaRepository, indexRepository));
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
-
-    public void setFrequency(Lemma lemma, String l) {
-        int i = 1;
-        if (!lemmaRepository.existsByLemma(l)) {
-            lemma.setFrequency(i);
-        } else if (lemmaRepository.existsByLemma(l)) {
-            lemma.setFrequency(i++);
         }
-    }
-
 
     public void setSiteIdForThisPage(String path, Page page) {
-            for (Site s : sitesList.getSites()) {
-                if (path.contains(s.getUrl())) {
-                    if (siteRepository.findSiteByPath(s.getUrl()) != null) {
-                        page.setSiteId(siteRepository.findSiteByPath(s.getUrl()));
-                    } else if (siteRepository.findSiteByPath(s.getUrl()) == null) {
-                        SiteEntity site = new SiteEntity();
-                        site.setUrl(s.getUrl());
-                        site.setName(s.getName());
-                        site.setStatusTime(LocalDateTime.now());
-                        site.setStatus(Status.INDEXED);
-                        siteRepository.saveAndFlush(site);
-                        page.setSiteId(site);
+        sitesList.getSites().stream()
+                .filter(site -> path.contains(site.getUrl()))
+                .forEach(site -> {
+                    if (siteRepository.findSiteByPath(site.getUrl()) != null) {                                          //если сайт есть в репозитории, его id записывается в site_id страницы
+                        page.setSiteId(siteRepository.findSiteByPath(site.getUrl()));
+                    } else if (siteRepository.findSiteByPath(site.getUrl()) == null) {                                   //если сайт не проиндексирован, он создается, и тогда уже его id записывается в site_id страницы
+                        SiteEntity siteEntity = objectBuilder.setSiteEntityInfo(Status.INDEXED, LocalDateTime.now(),
+                                site.getUrl(), site.getName());
+                        siteRepository.saveAndFlush(siteEntity);
+                        page.setSiteId(siteEntity);
                     }
-                }
-            }
+                });
     }
 
     public boolean isValid(String path){
-        try{
+        try {
             URL url = new URL(path);
             url.toURI();
             return true;
+        } catch(MalformedURLException | URISyntaxException ex) {
+            ex.printStackTrace();
         }
-        catch(Exception e) {
-            return false;
-        }
+        return false;
 
     }
 
@@ -222,16 +196,11 @@ public class IndexingServiceImpl implements IndexingService{
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             return connection.getResponseCode() == HttpURLConnection.HTTP_OK;
         }
-        catch(Exception e) {
+        catch(IOException e) {
             e.printStackTrace();
             return false;
         }
     }
-
-
-
-
-
 
 }
 

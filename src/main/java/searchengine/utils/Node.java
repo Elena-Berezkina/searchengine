@@ -1,13 +1,13 @@
-package searchengine.services;
+package searchengine.utils;
 
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Node {
 
     private String url;
-    private volatile Node parent;
+    private Node parent;
 
-    private volatile CopyOnWriteArrayList<Node> children;
+    private CopyOnWriteArrayList<Node> children;
 
     public Node(String url) {
         this.url = url;
