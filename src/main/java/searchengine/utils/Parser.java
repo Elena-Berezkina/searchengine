@@ -8,7 +8,6 @@ import java.time.LocalDateTime;
 import java.util.concurrent.Callable;
 
 public class Parser implements Callable<SiteEntity> {
-
     private String url;
     private ModelObjectBuilder builder;
 
@@ -18,12 +17,9 @@ public class Parser implements Callable<SiteEntity> {
     }
 
     public SiteEntity call() throws IOException {
-    Document doc = Jsoup.connect(url).userAgent("Mozilla").get();
-    String name = doc.select("title").text().substring(0, Math.min(doc.select("title")
+        Document doc = Jsoup.connect(url).userAgent("Mozilla").get();
+        String name = doc.select("title").text().substring(0, Math.min(doc.select("title")
                 .text().length(), 254));
         return builder.setSiteEntityInfo(Status.INDEXING, LocalDateTime.now(), url, name);
-
-}
-
-
+    }
 }

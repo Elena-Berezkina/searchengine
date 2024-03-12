@@ -12,14 +12,10 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.RecursiveAction;
-
 import static java.lang.Thread.sleep;
 
 public class Crawler extends RecursiveAction {
-
-
     private SiteEntity site;
     private final PageRepository pageRepository;
     private final LemmaRepository lemmaRepository;
@@ -28,7 +24,6 @@ public class Crawler extends RecursiveAction {
     private final LemmaIndexing lemmaIndexing;
     private final List<PageDto> pageDtoList;
     private final ModelObjectBuilder objectBuilder;
-
 
     public Crawler(Node node, SiteEntity site, PageRepository pageRepository, LemmaRepository lemmaRepository, IndexRepository indexRepository) {
         this.node = node;
@@ -39,7 +34,6 @@ public class Crawler extends RecursiveAction {
         lemmaIndexing = new LemmaIndexing();
         pageDtoList = new CopyOnWriteArrayList<>();
         objectBuilder = new ModelObjectBuilder();
-
     }
 
     @Override
@@ -50,23 +44,19 @@ public class Crawler extends RecursiveAction {
             Elements elements = doc.select("body").select("a");
             Page page = new Page();
             pageDtoList.add(createPageObject(page, doc));
-
             HashMap<String, Integer> lemmaMap = lemmaIndexing.getLemmas(page.getContent());
             lemmaMap.entrySet().forEach(entry -> objectBuilder.createLemmaAndIndex(site, page, entry.getKey()
-                        .substring(0, Math.min(entry.getKey().length(), 254)),
-                        entry.getValue(), lemmaRepository, indexRepository));
-
+                            .substring(0, Math.min(entry.getKey().length(), 254)),
+                    entry.getValue(), lemmaRepository, indexRepository));
             for (Element e : elements) {
                 String childUrl = e.absUrl("href");
-                if(!childUrl.isEmpty() && isCorrectUrl(childUrl) && !childUrl.equals(node.getUrl()) &&
+                if (!childUrl.isEmpty() && isCorrectUrl(childUrl) && !childUrl.equals(node.getUrl()) &&
                         childUrl.contains(node.getUrl())) {
                     childUrl = childUrl.replaceAll("\\?.+", "");
                     Node newNode = new Node(childUrl);
                     node.addChild(newNode);
-
                 }
-                }
-
+            }
         } catch (IOException | InterruptedException ex) {
             ex.printStackTrace();
         }
@@ -89,13 +79,13 @@ public class Crawler extends RecursiveAction {
         return (!url.contains("#")
                 && !url.matches("([^\\s]+(\\.(?i)(jpg|JPG|jpeg|jar|pptx|ppt|zip|png|gif|bmp|pdf))$)") &&
                 !url.matches("#([\\w\\-]+)?$"));
-        }
-
-
-
-
-
     }
+}
+
+
+
+
+
 
 
 

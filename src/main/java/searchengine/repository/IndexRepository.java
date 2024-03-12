@@ -9,10 +9,5 @@ import java.util.Optional;
 @Repository
 @Component
 public interface IndexRepository extends JpaRepository<Index, Integer> {
-
     Optional<Index> findByLemmaId(Lemma lemma);
-
-
-
-
 }

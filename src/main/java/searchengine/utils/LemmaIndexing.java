@@ -12,7 +12,6 @@ import java.util.*;
 
 public class LemmaIndexing {
     private final LuceneMorphology luceneMorphology;
-
     {
         try {
             luceneMorphology = new RussianLuceneMorphology();
@@ -53,10 +52,10 @@ public class LemmaIndexing {
     }
 
 
-    public String setResultSnippet(String path, String query) throws IOException {
+    public String setResultSnippet(Page page, String query) throws IOException {
         StringBuilder snippet = new StringBuilder();
         List<String> wordBaseForms = getFormsFromQuery(query);
-        String text = Jsoup.connect(path).userAgent("Mozilla").get().text();
+        String text = Jsoup.parse(page.getContent()).text();
         String[] textWords = text.split(" ");
         for (String textWord : textWords) {
             if (textWord.matches(".*\\p{InCyrillic}.*")) {
@@ -66,7 +65,6 @@ public class LemmaIndexing {
             }
         }
         return snippet.toString();
-
     }
 
     public void buildSnippet(List<String> textWordForms, List<String> queryWordForms, String text, String textWord,
@@ -93,8 +91,7 @@ public class LemmaIndexing {
             getFormsList(query.toLowerCase(), wordBaseForms);
         } else { wordBaseForms.addAll(luceneMorphology.getNormalForms(query)); }
         return wordBaseForms;
-        }
-
+    }
 
     public List<String> getFormsList(String text, List<String> listForForms) {
         for(String word : text.split(" ")) {
@@ -111,12 +108,8 @@ public class LemmaIndexing {
             lemmaTextList.add(index.getLemmaId().getLemma());
         }
         return lemmaTextList.contains(lemma.getLemma());
-
-
     }
-
-
-    }
+}
 
 
 

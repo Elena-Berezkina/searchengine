@@ -1,5 +1,4 @@
 package searchengine.model;
-
 import com.sun.istack.NotNull;
 import lombok.*;
 import org.hibernate.annotations.OnDelete;
@@ -38,19 +37,4 @@ public class Page {
     @OneToMany(cascade = CascadeType.REMOVE)
     @JoinColumn(name = "page_id")
     private List<searchengine.model.Index> indexes = new ArrayList<>();
-
-
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Page page = (Page) o;
-        return Objects.equals(path, page.path);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(path);
-    }
 }

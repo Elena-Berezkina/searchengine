@@ -17,7 +17,6 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.net.URL;
 
-
 @Service
 @EnableConfigurationProperties(value = SitesList.class)
 public class IndexingServiceImpl implements IndexingService{
@@ -29,7 +28,6 @@ public class IndexingServiceImpl implements IndexingService{
     private final IndexRepository indexRepository;
     private final LemmaIndexing lemmaIndexing;
     private final ModelObjectBuilder objectBuilder;
-
     @Autowired
     public SitesList sitesList;
 
@@ -43,8 +41,6 @@ public class IndexingServiceImpl implements IndexingService{
         sites = new CopyOnWriteArrayList<>();
         lemmaIndexing = new LemmaIndexing();
         objectBuilder = new ModelObjectBuilder();                                                                        //заполнение всех model объектов вынесено в отдельный класс, чтобы не было повторения и чтобы код не выглядел чересчур громоздко
-
-
     }
 
     public void toDelete(String path) {
@@ -57,15 +53,15 @@ public class IndexingServiceImpl implements IndexingService{
             pageRepository.deleteAll(pagesToDelete);
             siteRepository.delete(siteRepository.findSiteByPath(path));
             }
-        }
+    }
 
 
    public void toDeletePageData(String path) {
-   if(pageRepository.findPageByPath(path) != null) {
-       Page pageToDelete = pageRepository.findPageByPath(path);
-       SiteEntity s = pageToDelete.getSiteId();
-       deleteLemmasAndIndexes(s);
-       pageRepository.delete(pageToDelete);
+        if(pageRepository.findPageByPath(path) != null) {
+            Page pageToDelete = pageRepository.findPageByPath(path);
+            SiteEntity s = pageToDelete.getSiteId();
+            deleteLemmasAndIndexes(s);
+            pageRepository.delete(pageToDelete);
         }
    }
 
@@ -108,9 +104,8 @@ public class IndexingServiceImpl implements IndexingService{
                 newSite.setStatus(Status.INDEXED);
                 siteRepository.saveAndFlush(newSite);
                 sites.add(newSite);
-            }
-
         }
+    }
 
     public void stopIndexing() {
         List<Status> statusList = new ArrayList<>();
@@ -150,18 +145,18 @@ public class IndexingServiceImpl implements IndexingService{
             toDeletePageData(path);
             Page page = new Page();
         try {
-            objectBuilder.setPageInfo(page, path, 200, lemmaIndexing.getHtmlText(path));
+            String content = lemmaIndexing.getHtmlText(path);
+            objectBuilder.setPageInfo(page, path, 200, content);
             setSiteIdForThisPage(path, page);
             pageRepository.saveAndFlush(page);
-            HashMap<String, Integer> lemmaMap = lemmaIndexing.getLemmas(lemmaIndexing.getHtmlText(path));
+            HashMap<String, Integer> lemmaMap = lemmaIndexing.getLemmas(content);
             lemmaMap.entrySet()                                                                                          //заполняются таблицы лемм и индексов
                     .forEach(entry -> objectBuilder.createLemmaAndIndex(page.getSiteId(), page, entry.getKey(),
                             entry.getValue(), lemmaRepository, indexRepository));
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
-
-        }
+    }
 
     public void setSiteIdForThisPage(String path, Page page) {
         sitesList.getSites().stream()
@@ -201,7 +196,6 @@ public class IndexingServiceImpl implements IndexingService{
             return false;
         }
     }
-
 }
 
 

@@ -10,8 +10,8 @@ import java.util.Optional;
 @Repository
 @Component
 public interface LemmaRepository extends JpaRepository<Lemma, Integer> {
-
-Optional<List<Lemma>> findAllBySiteId(SiteEntity siteId);
-List<Lemma> findAllByLemma(String lemma);
-List<Lemma> findAllBySiteIdAndLemma(SiteEntity site, String lemma);
+    Optional<List<Lemma>> findAllBySiteId(SiteEntity siteId);
+    List<Lemma> findAllByLemma(String lemma);
+    List<Lemma> findAllBySiteIdAndLemma(SiteEntity site, String lemma);
+    boolean existsByLemma(String lemma);
 }

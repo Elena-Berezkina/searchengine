@@ -1,10 +1,8 @@
 package searchengine.exceptions;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 @ControllerAdvice
@@ -42,8 +40,7 @@ public class IndexingExceptionHandler extends ResponseEntityExceptionHandler {
     protected ResponseEntity<ExceptionMessage> handleEmptyQueryException() {
        return new ResponseEntity<>(new ExceptionMessage(false, "Задан пустой поисковый запрос"), HttpStatus.BAD_REQUEST);
     }
-
-    }
+}
 
 
 

@@ -1,12 +1,9 @@
 package searchengine.utils;
-
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Node {
-
     private String url;
     private Node parent;
-
     private CopyOnWriteArrayList<Node> children;
 
     public Node(String url) {
@@ -31,7 +28,6 @@ public class Node {
             if(child.contains(url))
                 return true;
         }
-
         return false;
     }
 
@@ -46,12 +42,10 @@ public class Node {
     }
 
     public Node getRootElement() {
-
         return parent == null ? this : parent.getRootElement();
     }
 
     public CopyOnWriteArrayList<Node> getChildren() {
         return children;
     }
-
 }

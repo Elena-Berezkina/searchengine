@@ -1,6 +1,4 @@
 package searchengine.services;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Service;
 import searchengine.config.SitesList;
@@ -18,7 +16,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 
-
 @Service
 @EnableConfigurationProperties(value = SitesList.class)
 public class SearchServiceImpl implements SearchService {
@@ -28,7 +25,6 @@ public class SearchServiceImpl implements SearchService {
     private final LemmaRepository lemmaRepository;
     private final IndexRepository indexRepository;
     private final ModelObjectBuilder objectBuilder;
-
 
     public SearchServiceImpl(SiteRepository siteRepository, PageRepository pageRepository,
                              LemmaRepository lemmaRepository, IndexRepository indexRepository) {
@@ -42,7 +38,8 @@ public class SearchServiceImpl implements SearchService {
 
     public List<Lemma> getSortedLemmaList(String text) {                                                                 //формирует из слов запроса список лемм
         Set<Lemma> lemmaList = new HashSet<>();
-        lemmaIndexing.getLemmas(text).forEach((key, value) -> {
+        HashMap<String, Integer> lemmaAndFrequencyMap = lemmaIndexing.getLemmas(text);
+        lemmaAndFrequencyMap.forEach((key, value) -> {
             Lemma lemma = objectBuilder.createLemma(key, lemmaRepository);
             if (lemma.getFrequency() <= 20) {
                 lemmaList.add(lemma);
@@ -53,41 +50,38 @@ public class SearchServiceImpl implements SearchService {
               .toList();
     }
 
-
     public List<Lemma> getLemmaListForAllSitesSearch(String text) {
-        return lemmaRepository.findAllByLemma(getSortedLemmaList(text).get(0).getLemma());
+        String lemma = getSortedLemmaList(text).get(0).getLemma();
+        return lemmaRepository.findAllByLemma(lemma);
     }
 
     public List<Lemma> getLemmaListForOneSiteSearch(String text, String path) {
         SiteEntity site = siteRepository.findSiteByPath(path);
-        return lemmaRepository.findAllBySiteIdAndLemma(site, getSortedLemmaList(text).get(0).getLemma());
-
+        String lemma = getSortedLemmaList(text).get(0).getLemma();
+        return lemmaRepository.findAllBySiteIdAndLemma(site, lemma);
     }
-
 
     public List<Page> getPageList(String text, List<Lemma> lemmaList) {                                                  //получение списка страниц, отвечающих на запрос
         List<Page> firstLemmaPageList = pageListForLemmas(lemmaList);
         List<Page> firstLemmaPageListFiltered = new ArrayList<>(firstLemmaPageList);
+        List<Lemma> sortedLemmaList = getSortedLemmaList(text);
         for(Page page : firstLemmaPageList) {
-            for(Lemma lemma : getSortedLemmaList(text).subList(1, getSortedLemmaList(text).size())) {
+            for(Lemma lemma : sortedLemmaList.subList(1, sortedLemmaList.size())) {
                 lemma = objectBuilder.getLemmaFromRepository(lemmaRepository, lemma, lemma.getLemma(), page.getSiteId());
                 if(!lemmaIndexing.pageContainsLemma(page, lemma)) {
                     firstLemmaPageListFiltered.remove(page);
                 }
             }
         }
-
         return firstLemmaPageListFiltered;
     }
-
 
     public List<Page> pageListForLemmas(List<Lemma> lemmaList) {
         List<Page> lemmaPageList = new ArrayList<>();
         for(Lemma lemma : lemmaList) {
-            if (lemmaRepository.findById(lemma.getId()).isPresent()) {
-                if (indexRepository.findByLemmaId(lemma).isPresent()) {
-                    lemmaPageList.add(indexRepository.findByLemmaId(lemma).get().getPageId());
-                }
+            if (lemmaRepository.existsById(lemma.getId())) {
+                Optional<Index> indexOptional = indexRepository.findByLemmaId(lemma);
+                indexOptional.ifPresent(index -> lemmaPageList.add(index.getPageId()));
             }
         }
         return lemmaPageList;
@@ -103,14 +97,15 @@ public class SearchServiceImpl implements SearchService {
     }
 
 
-    public HashMap<Page, Float> getRelevanceMap(String text, List<Lemma> lemmaList) {                                    //получение карты релевантности, где ключ - страница, значение - относительная релевантность
+    public HashMap<Integer, Float> getRelevanceMap(String text, List<Lemma> lemmaList) {                                    //получение карты релевантности, где ключ - страница, значение - относительная релевантность
         List<Double> relList = new ArrayList<>();                                                                        //список абсолютных релевантностей нужен для определения максимальной абсолютной рел-сти поисковой выдачи
-        HashMap<Page, Float> pageMap = new HashMap<>();
-        if (getPageList(text, lemmaList) != null) {
-            for (Page page : getPageList(text, lemmaList)) {
+        HashMap<Integer, Float> pageMap = new HashMap<>();
+        List<Page> pageList = getPageList(text, lemmaList);
+        if (pageList != null) {
+            for (Page page : pageList) {
                 double  absRel = getAbsoluteRelevance(page);
                 relList.add(absRel);
-                pageMap.put(page, (float) absRel);                                                                       //сначала как значение устанавливается абсолютная релевантность, потом меняется на относительную
+                pageMap.put(page.getId(), (float) absRel);
             }
             pageMap.entrySet()
                     .forEach(entry -> entry.setValue((float) (entry.getValue() / Collections.max(relList))));
@@ -119,67 +114,54 @@ public class SearchServiceImpl implements SearchService {
         return null;
     }
 
-
-    public List<SearchDto> getPageDataList(String text, List<Lemma> lemmaList) throws IOException {                      //представляет поисковую выдачу как список объектов с заданными тех заданием полями; список сортируется по убыванию релевантности
+    public List<SearchDto> getPageDataList(String text, List<Lemma> lemmaList) {                      //представляет поисковую выдачу как список объектов с заданными тех заданием полями; список сортируется по убыванию релевантности
         List<SearchDto> pageObjList = new ArrayList<>();
-        getRelevanceMap(text, lemmaList).forEach((key, value) -> {
-            Optional<Page> pageOptional = pageRepository.findById(key.getId());
-            if(pageOptional.isPresent()) {
-                String site = pageOptional.get().getSiteId().getUrl();
-                String siteName = pageOptional.get().getSiteId().getName();
-                String uri = pageOptional.get().getPath();
-                try {
-                    String title = setTitle(pageOptional.get().getPath());
-                    String snippet = lemmaIndexing.setResultSnippet(pageOptional.get().getPath(), text);
-                    float relevance = value;
-                    SearchDto pageObj = new SearchDto(site, siteName, uri, title, snippet, relevance);
-                    pageObjList.add(pageObj);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+        HashMap<Integer, Float> relevanceMap = getRelevanceMap(text, lemmaList);
+        Set<Integer> idList = relevanceMap.keySet();
+        List<Page> pageList = pageRepository.findAllByIdList(idList);
+        for(Page page : pageList) {
+            SiteEntity siteEntity = page.getSiteId();
+            String site = siteEntity.getUrl();
+            String siteName = siteEntity.getName();
+            String uri = page.getPath();
+            try {
+                String title = setTitle(page);
+                String snippet = lemmaIndexing.setResultSnippet(page, text);
+                float relevance = relevanceMap.get(page.getId());
+                SearchDto pageObj = new SearchDto(site, siteName, uri, title, snippet, relevance);
+                pageObjList.add(pageObj);
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        });
-
+        }
         return pageObjList.stream()
                 .sorted(Comparator.comparing(SearchDto::getRelevance)
                 .reversed())
                 .collect(Collectors.toList());
-
     }
 
     @Override
     public List<SearchDto> startSearch(String query, String path)  {                                                     //если параметр путь отсутствует, поиск осущ. по всем сайтам
-        try {
-            if (query.isEmpty()) {
-                throw new EmptyQueryException();
-            } else if (query != null && path != null) {
-                return getPageDataList(query, getLemmaListForOneSiteSearch(query, path));
-            } else if (query != null && path == null)
-                return getPageDataList(query, getLemmaListForAllSitesSearch(query));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        if (query.isEmpty()) {
+            throw new EmptyQueryException();
+        } else if (query != null && path != null) {
+            return getPageDataList(query, getLemmaListForOneSiteSearch(query, path));
+        } else if (query != null && path == null)
+            return getPageDataList(query, getLemmaListForAllSitesSearch(query));
         return null;
     }
 
 
-    public String setTitle(String path) {
-        Document doc = null;
-        try {
-            doc = Jsoup.connect(path).userAgent("Mozilla").get();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        assert doc != null;
-        return doc.select("title").text();
-
+    public String setTitle(Page page) {
+        String text = page.getContent();
+        String titleStartTeg = "<title>";
+        String titleEndTeg  ="</title>";
+        return text.substring(text.indexOf(titleStartTeg) + titleStartTeg.length(), text.indexOf(titleEndTeg));
     }
 
     public Comparator <Lemma> compareByFrequency() {
         return Comparator.comparing(Lemma::getFrequency);
     }
-
-
 }
 
 

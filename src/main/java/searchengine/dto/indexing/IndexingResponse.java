@@ -1,8 +1,6 @@
 package searchengine.dto.indexing;
-
 import lombok.Data;
 import org.springframework.http.HttpStatus;
-
 import java.util.List;
 
 @Data

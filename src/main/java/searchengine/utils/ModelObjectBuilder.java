@@ -3,7 +3,6 @@ import searchengine.model.*;
 import searchengine.repository.IndexRepository;
 import searchengine.repository.LemmaRepository;
 import searchengine.repository.SiteRepository;
-
 import java.time.LocalDateTime;
 
 public class ModelObjectBuilder {
@@ -27,12 +26,10 @@ public class ModelObjectBuilder {
         page.setPath(path);
         page.setCode(code);
         page.setContent(content.substring(0, Math.min(content.length(), 16777215)));
-
     }
 
     public void createLemmaAndIndex(SiteEntity site, Page page, String lemmaText, int rank,
                                     LemmaRepository lRepository, IndexRepository iRepository) {
-
         Lemma lemma = createLemma(lemmaText, lRepository);
         saveNewLemma(lemma, site, lRepository);
         Index index = new Index();
@@ -40,13 +37,12 @@ public class ModelObjectBuilder {
         index.setLemmaId(lemma);
         index.setLemmaRank(rank);
         iRepository.saveAndFlush(index);
-
     }
 
     public Lemma createLemma(String lemmaText, LemmaRepository lemmaRepository) {
        Lemma lemma = new Lemma();
        lemma.setLemma(lemmaText);
-       setFrequency(lemma, lemmaText, lemmaRepository);
+       setFrequency(lemma, lemmaRepository);
        return lemma;
     }
 
@@ -56,27 +52,21 @@ public class ModelObjectBuilder {
     }
 
     public Lemma getLemmaFromRepository(LemmaRepository lemmaRepository, Lemma lemma, String lemmaText, SiteEntity site) {
-        if(lemmaRepository.findById(lemma.getId()).isEmpty()) {
+        if(lemmaRepository.existsById(lemma.getId())) {
+            return lemmaRepository.findById(lemma.getId()).get();
+        } else {
             lemma = createLemma(lemmaText, lemmaRepository);
             saveNewLemma(lemma, site, lemmaRepository);
             return lemma;
-        } else if(lemmaRepository.findById(lemma.getId()).isPresent()) {
-            return lemmaRepository.findById(lemma.getId()).get();
         }
-        return null;
     }
 
-    public void setFrequency(Lemma lemma, String lemmaText, LemmaRepository lemmaRepository) {
+    public void setFrequency(Lemma lemma, LemmaRepository lemmaRepository) {
         int frequency = 1;
-        if (lemmaRepository.findAllByLemma(lemmaText).isEmpty()) {
+        if(lemmaRepository.existsByLemma(lemma.getLemma())) {
             lemma.setFrequency(frequency);
-        } else if (!lemmaRepository.findAllByLemma(lemmaText).isEmpty()) {
+        } else {
             lemma.setFrequency(frequency + 1);
         }
     }
-
-
-
-
-
 }

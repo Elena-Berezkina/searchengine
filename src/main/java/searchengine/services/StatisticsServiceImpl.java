@@ -16,10 +16,8 @@ import java.util.List;
 
 
 @Service
-
 @EnableConfigurationProperties(value = SitesList.class)
 public class StatisticsServiceImpl implements StatisticsService {
-
     private final SiteRepository siteRepository;
     private final PageRepository pageRepository;
     private final LemmaRepository lemmaRepository;

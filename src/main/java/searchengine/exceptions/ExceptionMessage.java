@@ -1,5 +1,4 @@
 package searchengine.exceptions;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
