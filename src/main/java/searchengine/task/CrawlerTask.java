@@ -1,4 +1,4 @@
-package searchengine.utils;
+package searchengine.task;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -8,6 +8,9 @@ import searchengine.model.*;
 import searchengine.repository.IndexRepository;
 import searchengine.repository.LemmaRepository;
 import searchengine.repository.PageRepository;
+import searchengine.utils.LemmaIndexing;
+import searchengine.utils.ModelObjectBuilder;
+import searchengine.utils.Node;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -15,7 +18,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.RecursiveAction;
 import static java.lang.Thread.sleep;
 
-public class Crawler extends RecursiveAction {
+public class CrawlerTask extends RecursiveAction {
     private SiteEntity site;
     private final PageRepository pageRepository;
     private final LemmaRepository lemmaRepository;
@@ -25,7 +28,7 @@ public class Crawler extends RecursiveAction {
     private final List<PageDto> pageDtoList;
     private final ModelObjectBuilder objectBuilder;
 
-    public Crawler(Node node, SiteEntity site, PageRepository pageRepository, LemmaRepository lemmaRepository, IndexRepository indexRepository) {
+    public CrawlerTask(Node node, SiteEntity site, PageRepository pageRepository, LemmaRepository lemmaRepository, IndexRepository indexRepository) {
         this.node = node;
         this.site = site;
         this.pageRepository = pageRepository;
@@ -61,7 +64,7 @@ public class Crawler extends RecursiveAction {
             ex.printStackTrace();
         }
         for (Node child : node.getChildren()) {
-            Crawler action = new Crawler(child, site, pageRepository, lemmaRepository, indexRepository);
+            CrawlerTask action = new CrawlerTask(child, site, pageRepository, lemmaRepository, indexRepository);
             action.compute();
         }
     }

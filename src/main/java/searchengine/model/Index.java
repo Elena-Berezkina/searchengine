@@ -15,13 +15,13 @@ public class Index {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @NotNull
-    int id;
+    private int id;
     @ManyToOne(cascade = CascadeType.MERGE)
     @JoinColumn(name = "page_id")
-    Page pageId;
+    private Page pageId;
     @JoinColumn(name = "lemma_id")
     @OneToOne(fetch = FetchType.LAZY)
-    Lemma lemmaId;
+    private Lemma lemmaId;
     @Column(name = "lemma_rank")
-    float lemmaRank;
+    private float lemmaRank;
 }

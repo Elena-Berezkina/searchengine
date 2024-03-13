@@ -15,13 +15,13 @@ public class Lemma {
     @Id
     @NotNull
     @GeneratedValue(strategy = GenerationType.AUTO)
-    int id;
+    private int id;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "site_id", nullable = false)
-    SiteEntity siteId;
+    private SiteEntity siteId;
     @NotNull
     @Column(columnDefinition = "VARCHAR(255)")
-    String lemma;
+    private String lemma;
     @NotNull
-    int frequency;
+    private int frequency;
 }

@@ -1,17 +1,18 @@
-package searchengine.utils;
+package searchengine.task;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import searchengine.model.SiteEntity;
 import searchengine.model.Status;
+import searchengine.utils.ModelObjectBuilder;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.concurrent.Callable;
 
-public class Parser implements Callable<SiteEntity> {
+public class ParserTask implements Callable<SiteEntity> {
     private String url;
     private ModelObjectBuilder builder;
 
-    public Parser(String url) {
+    public ParserTask(String url) {
         this.url = url;
         builder = new ModelObjectBuilder();
     }

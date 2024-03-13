@@ -96,7 +96,6 @@ public class SearchServiceImpl implements SearchService {
                 .reduce(0, Double::sum);                                                                          //сумма rank; перевела в double, так как при работе со стримами с double легче, чем с float
     }
 
-
     public HashMap<Integer, Float> getRelevanceMap(String text, List<Lemma> lemmaList) {                                    //получение карты релевантности, где ключ - страница, значение - относительная релевантность
         List<Double> relList = new ArrayList<>();                                                                        //список абсолютных релевантностей нужен для определения максимальной абсолютной рел-сти поисковой выдачи
         HashMap<Integer, Float> pageMap = new HashMap<>();

@@ -9,7 +9,8 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 public class IndexingExceptionHandler extends ResponseEntityExceptionHandler {
    @ExceptionHandler(StartIndexingException.class)
     protected ResponseEntity<ExceptionMessage> handleStartException() {
-        return new ResponseEntity<>(new ExceptionMessage(false, "Индексация уже запущена"), HttpStatus.CONFLICT);
+        return new ResponseEntity<>(new ExceptionMessage(false, "Индексация уже запущена"),
+                HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(StopIndexingException.class)
@@ -19,26 +20,31 @@ public class IndexingExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(OnePageIndexingException.class)
     protected ResponseEntity<ExceptionMessage> handlePageIndexingException() {
-        return new ResponseEntity<>(new ExceptionMessage(false, "Данная страница находится за пределами сайтов, указанных в конфигурационном файле"), HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(new ExceptionMessage(false, "Данная страница находится за пределами " +
+                "сайтов, указанных в конфигурационном файле"), HttpStatus.BAD_REQUEST);
     }
     @ExceptionHandler(WrongPathException.class)
     protected ResponseEntity<ExceptionMessage> handleWrongPathException() {
-       return new ResponseEntity<>(new ExceptionMessage(false, "Ошибка в написании url"), HttpStatus.BAD_REQUEST);
+       return new ResponseEntity<>(new ExceptionMessage(false, "Ошибка в написании url"),
+               HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(PageNotFoundException.class)
     protected ResponseEntity<ExceptionMessage> handleNotFoundException() {
-       return new ResponseEntity<>(new ExceptionMessage(false, "Указанная страница не найдена"), HttpStatus.NOT_FOUND);
+       return new ResponseEntity<>(new ExceptionMessage(false, "Указанная страница не найдена"),
+               HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(OffTheListException.class)
     protected ResponseEntity<ExceptionMessage> handleOffTheListException() {
-       return new ResponseEntity<>(new ExceptionMessage(false, "Данная страница находится за пределами сайтов, указанных в конфигурационном файле"), HttpStatus.FORBIDDEN);
+       return new ResponseEntity<>(new ExceptionMessage(false, "Данная страница находится за пределами " +
+               "сайтов, указанных в конфигурационном файле"), HttpStatus.FORBIDDEN);
     }
 
     @ExceptionHandler(EmptyQueryException.class)
     protected ResponseEntity<ExceptionMessage> handleEmptyQueryException() {
-       return new ResponseEntity<>(new ExceptionMessage(false, "Задан пустой поисковый запрос"), HttpStatus.BAD_REQUEST);
+       return new ResponseEntity<>(new ExceptionMessage(false, "Задан пустой поисковый запрос"),
+               HttpStatus.BAD_REQUEST);
     }
 }
 

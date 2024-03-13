@@ -7,6 +7,8 @@ import searchengine.config.SitesList;
 import searchengine.exceptions.*;
 import searchengine.model.*;
 import searchengine.repository.*;
+import searchengine.task.CrawlerTask;
+import searchengine.task.ParserTask;
 import searchengine.utils.*;
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -55,7 +57,6 @@ public class IndexingServiceImpl implements IndexingService{
             }
     }
 
-
    public void toDeletePageData(String path) {
         if(pageRepository.findPageByPath(path) != null) {
             Page pageToDelete = pageRepository.findPageByPath(path);
@@ -87,7 +88,7 @@ public class IndexingServiceImpl implements IndexingService{
     public void generalParser() {
         for (Site site : sitesList.getSites()) {
                 toDelete(site.getUrl());
-                Parser siteToParse = new Parser(site.getUrl());                                                                    //создается объект класса Parser, который имплементирует Callable
+                ParserTask siteToParse = new ParserTask(site.getUrl());                                                                    //создается объект класса Parser, который имплементирует Callable
                 FutureTask<SiteEntity> task = new FutureTask<>(siteToParse);
                 Thread thread = new Thread(task);
                 thread.start();
@@ -99,7 +100,7 @@ public class IndexingServiceImpl implements IndexingService{
             }
             siteRepository.saveAndFlush(newSite);
                 urlSet.add(site.getUrl());
-                new ForkJoinPool().invoke(new Crawler(new Node(site.getUrl()), newSite, pageRepository,                     //при обходе страниц при переходе по каждой новой ссылке создается новый поток
+                new ForkJoinPool().invoke(new CrawlerTask(new Node(site.getUrl()), newSite, pageRepository,                     //при обходе страниц при переходе по каждой новой ссылке создается новый поток
                         lemmaRepository, indexRepository));
                 newSite.setStatus(Status.INDEXED);
                 siteRepository.saveAndFlush(newSite);

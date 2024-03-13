@@ -83,8 +83,6 @@ public class LemmaIndexing {
         }
     }
 
-
-
     public List<String> getFormsFromQuery(String query) {
         List<String> wordBaseForms = new ArrayList<>();
         if(query.trim().contains(" ")) {
