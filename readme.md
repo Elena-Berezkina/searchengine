@@ -17,4 +17,24 @@
 - поиск по несуществующему сайту(страница не существует либо путь введен с ошибкой);
 - пустой запрос или пустой адрес, если данные параметры предполагаются командой.
 
-Использованные maven зависимости: org.springframework.boot, org.projectlombok, mysql, org.apache.lucene, org.apache.lucene.morphology, org.jsoup.# search-engine-repository
+Использованные maven зависимости: org.springframework.boot, org.projectlombok, mysql, org.apache.lucene, org.apache.lucene.morphology, org.jsoup, org.apache.logging.log4j.
+
+Внешний вид страницы со статистикой:
+![Снимок экрана 2024-04-15 110331](https://github.com/Elena-Berezkina/searchengine/assets/146889647/ee854f5f-9c01-4118-91ab-c7e9a0a2457d)
+
+Вид страницы управления:
+![Снимок экрана 2024-04-15 110426](https://github.com/Elena-Berezkina/searchengine/assets/146889647/6972d0f4-46c8-4dc7-a4d2-915986249ece)
+
+Поиск по всем сайтам и по одному заданному:
+![Снимок экрана 2024-04-15 104036](https://github.com/Elena-Berezkina/searchengine/assets/146889647/4eef711e-c468-44f3-aebd-ba02e4399558)
+![Снимок экрана 2024-04-15 104923](https://github.com/Elena-Berezkina/searchengine/assets/146889647/90735da7-f6c6-4c4b-87cf-07debd477e47)
+
+Вид результатов поиска через Postman:
+![Снимок экрана 2024-04-15 105104](https://github.com/Elena-Berezkina/searchengine/assets/146889647/070128a1-727a-4bcd-a7a1-9dd2adf0ca1f)
+![Снимок экрана 2024-04-15 105241](https://github.com/Elena-Berezkina/searchengine/assets/146889647/c36d7f11-ff25-4e4f-b6e2-60101149f6b7)
+
+
+
+
+
+
