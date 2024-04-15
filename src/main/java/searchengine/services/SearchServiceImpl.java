@@ -34,8 +34,8 @@ public class SearchServiceImpl implements SearchService {
         this.pageRepository = pageRepository;
         this.lemmaRepository = lemmaRepository;
         this.indexRepository = indexRepository;
-        lemmaIndexing = new LemmaIndexing();
-        objectBuilder = new ModelObjectBuilder();
+        this.lemmaIndexing = new LemmaIndexing();
+        this.objectBuilder = new ModelObjectBuilder();
     }
 
     public List<Lemma> getSortedLemmaList(String text) {                                                                 //формирует из слов запроса список лемм
