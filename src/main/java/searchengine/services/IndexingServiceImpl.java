@@ -32,7 +32,6 @@ public class IndexingServiceImpl implements IndexingService{
     private final IndexRepository indexRepository;
     private final LemmaIndexing lemmaIndexing;
     private final ModelObjectBuilder objectBuilder;
-    //@Autowired
     private SitesList sitesList;
 
     public IndexingServiceImpl(SiteRepository siteRepository, PageRepository pageRepository,
