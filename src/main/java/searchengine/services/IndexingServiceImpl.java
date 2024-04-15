@@ -1,4 +1,5 @@
 package searchengine.services;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ import java.net.URL;
 
 @Service
 @EnableConfigurationProperties(value = SitesList.class)
+@Slf4j
 public class IndexingServiceImpl implements IndexingService{
     private CopyOnWriteArraySet<String> urlSet;
     private CopyOnWriteArrayList<SiteEntity> sites;
@@ -30,19 +32,20 @@ public class IndexingServiceImpl implements IndexingService{
     private final IndexRepository indexRepository;
     private final LemmaIndexing lemmaIndexing;
     private final ModelObjectBuilder objectBuilder;
-    @Autowired
-    public SitesList sitesList;
+    //@Autowired
+    private SitesList sitesList;
 
     public IndexingServiceImpl(SiteRepository siteRepository, PageRepository pageRepository,
-                               LemmaRepository lemmaRepository, IndexRepository indexRepository) {
+                               LemmaRepository lemmaRepository, IndexRepository indexRepository, SitesList sitesList) {
         this.siteRepository = siteRepository;
         this.pageRepository = pageRepository;
         this.lemmaRepository = lemmaRepository;
         this.indexRepository = indexRepository;
-        urlSet = new CopyOnWriteArraySet<>();
-        sites = new CopyOnWriteArrayList<>();
-        lemmaIndexing = new LemmaIndexing();
-        objectBuilder = new ModelObjectBuilder();                                                                        //заполнение всех model объектов вынесено в отдельный класс, чтобы не было повторения и чтобы код не выглядел чересчур громоздко
+        this.sitesList = sitesList;
+        this.urlSet = new CopyOnWriteArraySet<>();
+        this.sites = new CopyOnWriteArrayList<>();
+        this.lemmaIndexing = new LemmaIndexing();
+        this.objectBuilder = new ModelObjectBuilder();                                                                        //заполнение всех model объектов вынесено в отдельный класс, чтобы не было повторения и чтобы код не выглядел чересчур громоздко
     }
 
     public void toDelete(String path) {
@@ -180,7 +183,7 @@ public class IndexingServiceImpl implements IndexingService{
             url.toURI();
             return true;
         } catch(MalformedURLException | URISyntaxException ex) {
-            ex.printStackTrace();
+            log.info(ex.getMessage());
         }
         return false;
 
@@ -193,7 +196,7 @@ public class IndexingServiceImpl implements IndexingService{
             return connection.getResponseCode() == HttpURLConnection.HTTP_OK;
         }
         catch(IOException e) {
-            e.printStackTrace();
+            log.info(e.getMessage());
             return false;
         }
     }

@@ -1,4 +1,5 @@
 package searchengine.task;
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -18,6 +19,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.RecursiveAction;
 import static java.lang.Thread.sleep;
 
+@Slf4j
 public class CrawlerTask extends RecursiveAction {
     private SiteEntity site;
     private final PageRepository pageRepository;
@@ -61,7 +63,7 @@ public class CrawlerTask extends RecursiveAction {
                 }
             }
         } catch (IOException | InterruptedException ex) {
-            ex.printStackTrace();
+            log.info(ex.getMessage());
         }
         for (Node child : node.getChildren()) {
             CrawlerTask action = new CrawlerTask(child, site, pageRepository, lemmaRepository, indexRepository);

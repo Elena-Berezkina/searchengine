@@ -1,4 +1,5 @@
 package searchengine.services;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Service;
 import searchengine.config.SitesList;
@@ -18,6 +19,7 @@ import java.util.stream.Collectors;
 
 @Service
 @EnableConfigurationProperties(value = SitesList.class)
+@Slf4j
 public class SearchServiceImpl implements SearchService {
     private final LemmaIndexing lemmaIndexing;
     private final SiteRepository siteRepository;
@@ -130,10 +132,11 @@ public class SearchServiceImpl implements SearchService {
                 SearchDto pageObj = new SearchDto(site, siteName, uri, title, snippet, relevance);
                 pageObjList.add(pageObj);
             } catch (IOException e) {
-                e.printStackTrace();
+                log.info(e.getMessage());
             }
         }
-        return pageObjList.stream()
+        return pageObjList
+                .stream()
                 .sorted(Comparator.comparing(SearchDto::getRelevance)
                 .reversed())
                 .collect(Collectors.toList());
