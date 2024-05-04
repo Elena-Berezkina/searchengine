@@ -9,7 +9,6 @@ import javax.persistence.*;
 import javax.persistence.Index;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 @Getter
 @Setter
@@ -17,7 +16,7 @@ import java.util.Objects;
 @NoArgsConstructor(force = true)
 @Table(name = "page",
         indexes = @Index(name = "path_index", columnList = "path", unique = false))
-public class Page {
+public class PageEntity {
     @Id
     @NotNull
     @GeneratedValue(strategy = GenerationType.AUTO)

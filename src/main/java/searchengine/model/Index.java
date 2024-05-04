@@ -18,7 +18,7 @@ public class Index {
     private int id;
     @ManyToOne(cascade = CascadeType.MERGE)
     @JoinColumn(name = "page_id")
-    private Page pageId;
+    private PageEntity pageId;
     @JoinColumn(name = "lemma_id")
     @OneToOne(fetch = FetchType.LAZY)
     private Lemma lemmaId;

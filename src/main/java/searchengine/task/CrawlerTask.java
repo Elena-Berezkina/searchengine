@@ -47,7 +47,7 @@ public class CrawlerTask extends RecursiveAction {
             sleep(1000);
             Document doc = Jsoup.connect(node.getUrl()).userAgent("Mozilla").get();
             Elements elements = doc.select("body").select("a");
-            Page page = new Page();
+            PageEntity page = new PageEntity();
             pageDtoList.add(createPageObject(page, doc));
             HashMap<String, Integer> lemmaMap = lemmaIndexing.getLemmas(page.getContent());
             lemmaMap.entrySet().forEach(entry -> objectBuilder.createLemmaAndIndex(site, page, entry.getKey()
@@ -71,7 +71,7 @@ public class CrawlerTask extends RecursiveAction {
         }
     }
 
-    public PageDto createPageObject(Page page, Document doc) {
+    public PageDto createPageObject(PageEntity page, Document doc) {
         objectBuilder.setPageInfo(page, node.getUrl().substring(0, Math.min(node.getUrl().length(), 254)), 200,
                 doc.html());
         page.setSiteId(site);

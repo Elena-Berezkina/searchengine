@@ -22,13 +22,13 @@ public class ModelObjectBuilder {
         siteRepository.save(site);
     }
 
-    public void setPageInfo(Page page, String path, int code, String content) {
+    public void setPageInfo(PageEntity page, String path, int code, String content) {
         page.setPath(path);
         page.setCode(code);
         page.setContent(content.substring(0, Math.min(content.length(), 16777215)));
     }
 
-    public void createLemmaAndIndex(SiteEntity site, Page page, String lemmaText, int rank,
+    public void createLemmaAndIndex(SiteEntity site, PageEntity page, String lemmaText, int rank,
                                     LemmaRepository lRepository, IndexRepository iRepository) {
         Lemma lemma = createLemma(lemmaText, lRepository);
         saveNewLemma(lemma, site, lRepository);

@@ -1,4 +1,5 @@
 package searchengine.controllers;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -8,7 +9,6 @@ import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.services.*;
 import java.io.IOException;
 import java.util.List;
-
 
 @RestController
 @RequestMapping("/api")
@@ -22,7 +22,6 @@ public class ApiController {
         this.statisticsService = statisticsService;
         this.indexingService = indexingService;
         this.searchService = searchService;
-
     }
 
     @RequestMapping("/statistics")
@@ -50,9 +49,12 @@ public class ApiController {
 
     @GetMapping("/search")
     public IndexingResponse search(@RequestParam(name = "query") String query,
-                                            @RequestParam(name = "site", required = false) String site) throws IOException {
+                                   @RequestParam(name = "site", required = false) String site,
+                                   @RequestParam(name="offset") Integer offset,
+                                   @RequestParam(name="limit") Integer limit) throws IOException {
         List<SearchDto> searchResult = searchService.startSearch(query, site);
-        return new IndexingResponse(true, searchResult.size(), searchResult, HttpStatus.OK);
+        Page<SearchDto> paginatedResults = searchService.searchWithPagination(searchResult, offset, limit);
+        return new IndexingResponse (true, searchResult.size(), paginatedResults.getContent(), HttpStatus.OK);
     }
 }
 

@@ -5,7 +5,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import searchengine.model.Index;
 import searchengine.model.Lemma;
-import searchengine.model.Page;
+import searchengine.model.PageEntity;
 import java.io.IOException;
 import java.util.*;
 
@@ -51,7 +51,7 @@ public class LemmaIndexing {
         return lemmaMap;
     }
 
-    public String setResultSnippet(Page page, String query) throws IOException {
+    public String setResultSnippet(PageEntity page, String query) throws IOException {
         StringBuilder snippet = new StringBuilder();
         List<String> queryForms = getFormsFromQuery(query);
         String text = Jsoup.parse(page.getContent()).text();
@@ -140,7 +140,7 @@ public class LemmaIndexing {
         return wordBaseForms;
     }
 
-    public boolean pageContainsLemma(Page page, Lemma lemma) {
+    public boolean pageContainsLemma(PageEntity page, Lemma lemma) {
         List<String> lemmaTextList = new ArrayList<>();
         for(Index index : page.getIndexes()) {
             lemmaTextList.add(index.getLemmaId().getLemma());

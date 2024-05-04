@@ -1,14 +1,12 @@
 package searchengine.services;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import searchengine.config.SitesList;
 import searchengine.dto.indexing.SearchDto;
 import searchengine.exceptions.EmptyQueryException;
-import searchengine.model.Index;
-import searchengine.model.Lemma;
-import searchengine.model.Page;
-import searchengine.model.SiteEntity;
+import searchengine.model.*;
 import searchengine.repository.*;
 import searchengine.utils.LemmaIndexing;
 import searchengine.utils.ModelObjectBuilder;
@@ -38,7 +36,7 @@ public class SearchServiceImpl implements SearchService {
         this.objectBuilder = new ModelObjectBuilder();
     }
 
-    public List<Lemma> getSortedLemmaList(String text) {                                                                 //формирует из слов запроса список лемм
+    public List<Lemma> getSortedLemmaList(String text) {
         Set<Lemma> lemmaList = new HashSet<>();
         HashMap<String, Integer> lemmaAndFrequencyMap = lemmaIndexing.getLemmas(text);
         lemmaAndFrequencyMap.forEach((key, value) -> {
@@ -48,7 +46,7 @@ public class SearchServiceImpl implements SearchService {
             }
         });
       return lemmaList.stream()
-              .sorted(compareByFrequency())                                                                              //список возвращается отсортированным по частоте
+              .sorted(compareByFrequency())
               .toList();
     }
 
@@ -63,11 +61,11 @@ public class SearchServiceImpl implements SearchService {
         return lemmaRepository.findAllBySiteIdAndLemma(site, lemma);
     }
 
-    public List<Page> getPageList(String text, List<Lemma> lemmaList) {                                                  //получение списка страниц, отвечающих на запрос
-        List<Page> firstLemmaPageList = pageListForLemmas(lemmaList);
-        List<Page> firstLemmaPageListFiltered = new ArrayList<>(firstLemmaPageList);
+    public List<PageEntity> getPageList(String text, List<Lemma> lemmaList) {
+        List<PageEntity> firstLemmaPageList = pageListForLemmas(lemmaList);
+        List<PageEntity> firstLemmaPageListFiltered = new ArrayList<>(firstLemmaPageList);
         List<Lemma> sortedLemmaList = getSortedLemmaList(text);
-        for(Page page : firstLemmaPageList) {
+        for(PageEntity page : firstLemmaPageList) {
             for(Lemma lemma : sortedLemmaList.subList(1, sortedLemmaList.size())) {
                 lemma = objectBuilder.getLemmaFromRepository(lemmaRepository, lemma, lemma.getLemma(), page.getSiteId());
                 if(!lemmaIndexing.pageContainsLemma(page, lemma)) {
@@ -78,8 +76,8 @@ public class SearchServiceImpl implements SearchService {
         return firstLemmaPageListFiltered;
     }
 
-    public List<Page> pageListForLemmas(List<Lemma> lemmaList) {
-        List<Page> lemmaPageList = new ArrayList<>();
+    public List<PageEntity> pageListForLemmas(List<Lemma> lemmaList) {
+        List<PageEntity> lemmaPageList = new ArrayList<>();
         for(Lemma lemma : lemmaList) {
             if (lemmaRepository.existsById(lemma.getId())) {
                 Optional<Index> indexOptional = indexRepository.findByLemmaId(lemma);
@@ -89,21 +87,21 @@ public class SearchServiceImpl implements SearchService {
         return lemmaPageList;
     }
 
-    public double getAbsoluteRelevance(Page page) {
+    public double getAbsoluteRelevance(PageEntity page) {
         List<Float> rankList = page.getIndexes().stream().map(Index::getLemmaRank).toList();
         double[] rankListToArray = rankList.stream()
                 .mapToDouble(i -> i)
                 .toArray();
         return Arrays.stream(rankListToArray)
-                .reduce(0, Double::sum);                                                                          //сумма rank; перевела в double, так как при работе со стримами с double легче, чем с float
+                .reduce(0, Double::sum);
     }
 
-    public HashMap<Integer, Float> getRelevanceMap(String text, List<Lemma> lemmaList) {                                    //получение карты релевантности, где ключ - страница, значение - относительная релевантность
-        List<Double> relList = new ArrayList<>();                                                                        //список абсолютных релевантностей нужен для определения максимальной абсолютной рел-сти поисковой выдачи
+    public HashMap<Integer, Float> getRelevanceMap(String text, List<Lemma> lemmaList) {
+        List<Double> relList = new ArrayList<>();
         HashMap<Integer, Float> pageMap = new HashMap<>();
-        List<Page> pageList = getPageList(text, lemmaList);
+        List<PageEntity> pageList = getPageList(text, lemmaList);
         if (pageList != null) {
-            for (Page page : pageList) {
+            for (PageEntity page : pageList) {
                 double  absRel = getAbsoluteRelevance(page);
                 relList.add(absRel);
                 pageMap.put(page.getId(), (float) absRel);
@@ -115,12 +113,12 @@ public class SearchServiceImpl implements SearchService {
         return null;
     }
 
-    public List<SearchDto> getPageDataList(String text, List<Lemma> lemmaList) {                      //представляет поисковую выдачу как список объектов с заданными тех заданием полями; список сортируется по убыванию релевантности
+    public List<SearchDto> getPageDataList(String text, List<Lemma> lemmaList) {
         List<SearchDto> pageObjList = new ArrayList<>();
         HashMap<Integer, Float> relevanceMap = getRelevanceMap(text, lemmaList);
         Set<Integer> idList = relevanceMap.keySet();
-        List<Page> pageList = pageRepository.findAllByIdList(idList);
-        for(Page page : pageList) {
+        List<PageEntity> pageList = pageRepository.findAllByIdList(idList);
+        for(PageEntity page : pageList) {
             SiteEntity siteEntity = page.getSiteId();
             String site = siteEntity.getUrl();
             String siteName = siteEntity.getName();
@@ -140,10 +138,11 @@ public class SearchServiceImpl implements SearchService {
                 .sorted(Comparator.comparing(SearchDto::getRelevance)
                 .reversed())
                 .collect(Collectors.toList());
+
     }
 
     @Override
-    public List<SearchDto> startSearch(String query, String path)  {                                                     //если параметр путь отсутствует, поиск осущ. по всем сайтам
+    public List<SearchDto> startSearch(String query, String path)  {
         if (query.isEmpty()) {
             throw new EmptyQueryException();
         } else if (query != null && path != null) {
@@ -153,8 +152,14 @@ public class SearchServiceImpl implements SearchService {
         return null;
     }
 
+    public Page<SearchDto> searchWithPagination(List<SearchDto> results, Integer offset, Integer limit)  {
+        Pageable pageable = PageRequest.of(offset, limit);
+        int start = Math.min((int) pageable.getOffset(), offset + limit);
+        int end = Math.min((start + pageable.getPageSize()), results.size());
+        return new PageImpl<>(results.subList(start, end), pageable, results.size());
+    }
 
-    public String setTitle(Page page) {
+    public String setTitle(PageEntity page) {
         String text = page.getContent();
         String titleStartTeg = "<title>";
         String titleEndTeg  ="</title>";

@@ -1,6 +1,5 @@
 package searchengine.services;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Service;
 import searchengine.config.Site;
@@ -52,7 +51,7 @@ public class IndexingServiceImpl implements IndexingService{
             if(siteRepository.findSiteByPath(path).getStatus().equals(Status.INDEXING)) {
                 throw new StartIndexingException();
             }
-            List<Page> pagesToDelete = pageRepository.findAllBySiteId(siteRepository.findSiteByPath(path));
+            List<PageEntity> pagesToDelete = pageRepository.findAllBySiteId(siteRepository.findSiteByPath(path));
             deleteLemmasAndIndexes(siteRepository.findSiteByPath(path));
             pageRepository.deleteAll(pagesToDelete);
             siteRepository.delete(siteRepository.findSiteByPath(path));
@@ -61,7 +60,7 @@ public class IndexingServiceImpl implements IndexingService{
 
    public void toDeletePageData(String path) {
         if(pageRepository.findPageByPath(path) != null) {
-            Page pageToDelete = pageRepository.findPageByPath(path);
+            PageEntity pageToDelete = pageRepository.findPageByPath(path);
             SiteEntity s = pageToDelete.getSiteId();
             deleteLemmasAndIndexes(s);
             pageRepository.delete(pageToDelete);
@@ -146,7 +145,7 @@ public class IndexingServiceImpl implements IndexingService{
         if(!isFound(path)) { throw new PageNotFoundException(); }
         if(isOffTheSiteList(path)) { throw new OffTheListException(); }
             toDeletePageData(path);
-            Page page = new Page();
+            PageEntity page = new PageEntity();
         try {
             String content = lemmaIndexing.getHtmlText(path);
             objectBuilder.setPageInfo(page, path, 200, content);
@@ -161,7 +160,7 @@ public class IndexingServiceImpl implements IndexingService{
         }
     }
 
-    public void setSiteIdForThisPage(String path, Page page) {
+    public void setSiteIdForThisPage(String path, PageEntity page) {
         sitesList.getSites().stream()
                 .filter(site -> path.contains(site.getUrl()))
                 .forEach(site -> {

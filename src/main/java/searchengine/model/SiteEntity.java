@@ -34,7 +34,7 @@ public class SiteEntity {
     @Column(columnDefinition = "VARCHAR(255)")
     private String name;
     @OneToMany(mappedBy = "siteId", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<Page> pages;
+    private Set<PageEntity> pages;
     @OneToMany(mappedBy = "siteId", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Lemma> lemmas;
 }
