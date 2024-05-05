@@ -154,8 +154,25 @@ public class SearchServiceImpl implements SearchService {
 
     public Page<SearchDto> searchWithPagination(List<SearchDto> results, Integer offset, Integer limit)  {
         Pageable pageable = PageRequest.of(offset, limit);
-        int start = Math.min((int) pageable.getOffset(), offset + limit);
-        int end = Math.min((start + pageable.getPageSize()), results.size());
+        int start;
+        int end;
+        if(offset + limit < results.size()) {
+            start = offset;
+            end = Math.min((start + pageable.getPageSize()), results.size());
+        } else {
+            start = results.size() - results.size()%limit;
+            end = Math.min(start + limit, start + results.size()%limit);
+            //results.size() - offset
+        }
+
+
+
+
+
+
+        //int start = (int) pageable.getOffset();
+        //int end = Math.min((start + pageable.getPageSize()), results.size());
+
         return new PageImpl<>(results.subList(start, end), pageable, results.size());
     }
 
