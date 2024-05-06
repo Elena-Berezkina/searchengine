@@ -89,19 +89,19 @@ public class IndexingServiceImpl implements IndexingService{
     public void generalParser() {
         for (Site site : sitesList.getSites()) {
                 toDelete(site.getUrl());
-                ParserTask siteToParse = new ParserTask(site.getUrl());                                                                    //создается объект класса Parser, который имплементирует Callable
+                ParserTask siteToParse = new ParserTask(site.getUrl());
                 FutureTask<SiteEntity> task = new FutureTask<>(siteToParse);
                 Thread thread = new Thread(task);
                 thread.start();
             SiteEntity newSite = null;
             try {
-                newSite = siteToParse.call();                                                                                   //каждый сайт создается в новом потоке
+                newSite = siteToParse.call();
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
             siteRepository.saveAndFlush(newSite);
                 urlSet.add(site.getUrl());
-                new ForkJoinPool().invoke(new CrawlerTask(new Node(site.getUrl()), newSite, pageRepository,                     //при обходе страниц при переходе по каждой новой ссылке создается новый поток
+                new ForkJoinPool().invoke(new CrawlerTask(new Node(site.getUrl()), newSite, pageRepository,
                         lemmaRepository, indexRepository));
                 newSite.setStatus(Status.INDEXED);
                 siteRepository.saveAndFlush(newSite);
@@ -152,7 +152,7 @@ public class IndexingServiceImpl implements IndexingService{
             setSiteIdForThisPage(path, page);
             pageRepository.saveAndFlush(page);
             HashMap<String, Integer> lemmaMap = lemmaIndexing.getLemmas(content);
-            lemmaMap.entrySet()                                                                                          //заполняются таблицы лемм и индексов
+            lemmaMap.entrySet()
                     .forEach(entry -> objectBuilder.createLemmaAndIndex(page.getSiteId(), page, entry.getKey(),
                             entry.getValue(), lemmaRepository, indexRepository));
         } catch (IOException e) {
@@ -164,9 +164,9 @@ public class IndexingServiceImpl implements IndexingService{
         sitesList.getSites().stream()
                 .filter(site -> path.contains(site.getUrl()))
                 .forEach(site -> {
-                    if (siteRepository.findSiteByPath(site.getUrl()) != null) {                                          //если сайт есть в репозитории, его id записывается в site_id страницы
+                    if (siteRepository.findSiteByPath(site.getUrl()) != null) {
                         page.setSiteId(siteRepository.findSiteByPath(site.getUrl()));
-                    } else if (siteRepository.findSiteByPath(site.getUrl()) == null) {                                   //если сайт не проиндексирован, он создается, и тогда уже его id записывается в site_id страницы
+                    } else if (siteRepository.findSiteByPath(site.getUrl()) == null) {
                         SiteEntity siteEntity = objectBuilder.setSiteEntityInfo(Status.INDEXED, LocalDateTime.now(),
                                 site.getUrl(), site.getName());
                         siteRepository.saveAndFlush(siteEntity);
@@ -184,7 +184,6 @@ public class IndexingServiceImpl implements IndexingService{
             log.info(ex.getMessage());
         }
         return false;
-
     }
 
     public boolean isFound(String path) {

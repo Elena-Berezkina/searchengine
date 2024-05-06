@@ -162,17 +162,7 @@ public class SearchServiceImpl implements SearchService {
         } else {
             start = results.size() - results.size()%limit;
             end = Math.min(start + limit, start + results.size()%limit);
-            //results.size() - offset
         }
-
-
-
-
-
-
-        //int start = (int) pageable.getOffset();
-        //int end = Math.min((start + pageable.getPageSize()), results.size());
-
         return new PageImpl<>(results.subList(start, end), pageable, results.size());
     }
 
